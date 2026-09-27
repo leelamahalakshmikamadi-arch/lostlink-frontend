@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { API_BASE_URL, getApiErrorMessage, itemsApi, matchItemImage } from "../api";
+import { useAuth } from "../context/AuthContext";
 import { MapPin, Calendar, Wallet } from "lucide-react";
 
 function FoundItem() {
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [filterQuery, setFilterQuery] = useState("");
   const [image, setImage] = useState(null);
@@ -42,17 +44,22 @@ function FoundItem() {
     setError("");
 
     try {
-      const payload = image ? new FormData() : formData;
+      const payload = image ? new FormData() : { ...formData };
       if (image) {
         Object.entries(formData).forEach(([key, value]) => payload.append(key, value));
         payload.append("image", image);
+        if (user?.id) payload.append("userId", user.id);
+        if (user?.email) payload.append("userEmail", user.email);
+      } else {
+        if (user?.id) payload.userId = user.id;
+        if (user?.email) payload.userEmail = user.email;
       }
 
       await itemsApi.post("/found", payload);
       if (image) {
         setMatching(true);
         try {
-          const matchResponse = await matchItemImage(image, "found");
+          const matchResponse = await matchItemImage(image, "found", user?.id, user?.email);
           setMatches(matchResponse.data.matches || []);
         } catch (matchError) {
           setMatches([]);

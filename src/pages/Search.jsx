@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { API_BASE_URL, getApiErrorMessage, getItemImage, itemsApi, matchItemImage } from "../api";
+import { useAuth } from "../context/AuthContext";
 import { Smartphone, ShoppingBag, Wallet, KeyRound, BookOpen, MapPin, Award } from "lucide-react";
 
 function Search() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState(searchParams.get("q") || "");
@@ -79,7 +81,12 @@ function Search() {
 
     try {
       const imageResponse = await getItemImage(item.id);
-      const response = await matchItemImage(imageResponse.data, item.itemType || "lost");
+      const response = await matchItemImage(
+        imageResponse.data,
+        item.itemType || "lost",
+        user?.id || item.userId,
+        user?.email || item.userEmail
+      );
       setMatchResults((current) => ({
         ...current,
         [item.id]: { matches: response.data.matches || [] },

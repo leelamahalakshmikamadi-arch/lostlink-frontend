@@ -16,7 +16,7 @@ function Navbar() {
 
   const loadNotifications = async () => {
     try {
-      const res = await notificationsApi.getNotifications();
+      const res = await notificationsApi.getNotifications(user?.id);
       const list = res.data || [];
       setNotifications(list);
       setUnreadCount(list.filter((n) => !n.read).length);
@@ -29,13 +29,28 @@ function Navbar() {
     loadNotifications();
     const interval = setInterval(loadNotifications, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.id]);
 
   const handleMarkAllRead = async () => {
     try {
-      await notificationsApi.markAllRead();
+      await notificationsApi.markAllRead(user?.id);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleMarkOneRead = async (notif) => {
+    if (!notif || notif.read) return;
+    const targetId = notif.id || notif.notificationId;
+    if (!targetId) return;
+    try {
+      await notificationsApi.markRead(targetId, user?.id);
+      setNotifications((prev) =>
+        prev.map((n) => ((n.id || n.notificationId) === targetId ? { ...n, read: true } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
     } catch {
       // ignore
     }
@@ -109,15 +124,37 @@ function Navbar() {
                 {notifications.length === 0 ? (
                   <p className="no-notifs">No notifications yet.</p>
                 ) : (
-                  notifications.map((n, index) => (
-                    <div key={n.id || index} className={`notif-item ${n.read ? "read" : "unread"}`}>
-                      <div className="notif-item-title">{n.title}</div>
-                      <div className="notif-item-msg">{n.message}</div>
-                      <div className="notif-item-time">
-                        {n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recent"}
+                  notifications.map((n, index) => {
+                    const notifKey = n.id || n.notificationId || index;
+                    return (
+                      <div
+                        key={notifKey}
+                        className={`notif-item ${n.read ? "read" : "unread"}`}
+                        onClick={() => handleMarkOneRead(n)}
+                        style={{ cursor: "pointer" }}
+                        title={n.read ? undefined : "Click to mark as read"}
+                      >
+                        <div className="notif-item-title">{n.title || "Notification"}</div>
+                        <div className="notif-item-msg">{n.message}</div>
+                        {n.matchPercentage != null && (
+                          <div
+                            className="notif-item-meta"
+                            style={{
+                              marginTop: "4px",
+                              fontSize: "0.75rem",
+                              color: "#059669",
+                              fontWeight: "600",
+                            }}
+                          >
+                            AI Similarity: {n.matchPercentage}%
+                          </div>
+                        )}
+                        <div className="notif-item-time">
+                          {n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recent"}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

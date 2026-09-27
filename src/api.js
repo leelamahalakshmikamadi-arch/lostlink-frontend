@@ -54,10 +54,13 @@ export const getItemById = (id) => itemsApi.get(`/${encodeURIComponent(id)}`);
 export const getItemImage = (id) =>
   itemsApi.get(`/${encodeURIComponent(id)}/image`, { responseType: "blob" });
 
-export const matchItemImage = (image, itemType) => {
+export const matchItemImage = (image, itemType, userId, userEmail) => {
   const payload = new FormData();
   payload.append("image", image);
-  return itemsApi.post(`/match?itemType=${encodeURIComponent(itemType)}`, payload);
+  let url = `/match?itemType=${encodeURIComponent(itemType)}`;
+  if (userId) url += `&userId=${encodeURIComponent(userId)}`;
+  if (userEmail) url += `&userEmail=${encodeURIComponent(userEmail)}`;
+  return itemsApi.post(url, payload);
 };
 
 export const claimsApi = {
@@ -67,6 +70,9 @@ export const claimsApi = {
 };
 
 export const notificationsApi = {
-  getNotifications: () => api.get("/api/notifications"),
-  markAllRead: () => api.post("/api/notifications/read"),
+  getNotifications: (userId) =>
+    api.get("/api/notifications", { params: userId ? { userId } : {} }),
+  markRead: (id, userId) =>
+    api.post(`/api/notifications/${encodeURIComponent(id)}/read`, null, { params: userId ? { userId } : {} }),
+  markAllRead: (userId) => api.post("/api/notifications/read", null, { params: userId ? { userId } : {} }),
 };

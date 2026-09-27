@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { API_BASE_URL, getApiErrorMessage, itemsApi, matchItemImage } from "../api";
+import { useAuth } from "../context/AuthContext";
 
 function LostItem() {
+  const { user } = useAuth();
   const [image, setImage] = useState(null);
   const [matches, setMatches] = useState([]);
   const [matching, setMatching] = useState(false);
@@ -27,10 +29,15 @@ function LostItem() {
     e.preventDefault();
 
     try {
-      const payload = image ? new FormData() : formData;
+      const payload = image ? new FormData() : { ...formData };
       if (image) {
         Object.entries(formData).forEach(([key, value]) => payload.append(key, value));
         payload.append("image", image);
+        if (user?.id) payload.append("userId", user.id);
+        if (user?.email) payload.append("userEmail", user.email);
+      } else {
+        if (user?.id) payload.userId = user.id;
+        if (user?.email) payload.userEmail = user.email;
       }
 
       await itemsApi.post("/lost", payload);
@@ -38,7 +45,7 @@ function LostItem() {
       if (image) {
         setMatching(true);
         try {
-          const matchResponse = await matchItemImage(image, "lost");
+          const matchResponse = await matchItemImage(image, "lost", user?.id, user?.email);
           setMatches(matchResponse.data.matches || []);
         } catch (matchError) {
           setMatches([]);
