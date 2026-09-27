@@ -14,21 +14,24 @@ function Navbar() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const loadNotifications = async () => {
-    try {
-      const res = await notificationsApi.getNotifications(user?.id);
-      const list = res.data || [];
-      setNotifications(list);
-      setUnreadCount(list.filter((n) => !n.read).length);
-    } catch {
-      // Graceful fallback
-    }
-  };
-
   useEffect(() => {
-    loadNotifications();
+    const loadNotifications = async () => {
+      try {
+        const res = await notificationsApi.getNotifications(user?.id);
+        const list = res.data || [];
+        setNotifications(list);
+        setUnreadCount(list.filter((notification) => !notification.read).length);
+      } catch {
+        // Graceful fallback
+      }
+    };
+
+    const initialLoad = setTimeout(loadNotifications, 0);
     const interval = setInterval(loadNotifications, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialLoad);
+      clearInterval(interval);
+    };
   }, [user?.id]);
 
   const handleMarkAllRead = async () => {
