@@ -1,0 +1,235 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Search,
+  Camera,
+  Bell,
+  ShieldCheck,
+  UserRound,
+  WalletCards,
+  PackageCheck,
+} from "lucide-react";
+
+function Home() {
+  const navigate = useNavigate();
+  const [heroSearch, setHeroSearch] = useState("");
+
+  const categories = [
+    "All",
+    "Electronics",
+    "Wallet",
+    "Keys",
+    "Books",
+    "Accessories",
+    "ID Cards",
+  ];
+
+  const handleHeroSearch = (e) => {
+    e.preventDefault();
+    if (heroSearch.trim()) {
+      navigate(`/search?q=${encodeURIComponent(heroSearch.trim())}`);
+    } else {
+      navigate("/search");
+    }
+  };
+
+  const handleCategoryClick = (category) => {
+    if (category === "All") {
+      navigate("/search");
+    } else {
+      navigate(`/search?category=${encodeURIComponent(category)}`);
+    }
+  };
+
+  const stats = [
+    {
+      icon: <WalletCards size={16} />,
+      number: "250+",
+      label: "Lost Items Reported",
+      className: "purple",
+    },
+    {
+      icon: <PackageCheck size={16} />,
+      number: "180+",
+      label: "Items Found",
+      className: "green",
+    },
+    {
+      icon: <UserRound size={16} />,
+      number: "320+",
+      label: "Happy Users",
+      className: "blue",
+    },
+    {
+      icon: <ShieldCheck size={16} />,
+      number: "90+",
+      label: "Items Returned",
+      className: "yellow",
+    },
+  ];
+
+  const features = [
+    {
+      icon: <Camera size={18} />,
+      title: "Easy Reporting",
+      text: "Report lost or found items in just a few clicks with all the details.",
+      className: "purple",
+    },
+    {
+      icon: <Search size={18} />,
+      title: "Quick Search",
+      text: "Search by category, location, or keywords and find items instantly.",
+      className: "green",
+    },
+    {
+      icon: <Bell size={18} />,
+      title: "Instant Alerts",
+      text: "Get notified when a matching item is found or reported.",
+      className: "blue",
+    },
+    {
+      icon: <ShieldCheck size={18} />,
+      title: "Secure & Reliable",
+      text: "We ensure privacy and safety for all users and their belongings.",
+      className: "yellow",
+    },
+  ];
+
+  return (
+    <div className="home">
+      {/* ================= HERO ================= */}
+      <section className="hero">
+        {/* Hero Image / Wallet Illustration */}
+        <div className="hero-image">
+          <div className="hero-circle">
+            <WalletCards size={62} />
+          </div>
+        </div>
+
+        <div className="hero-content">
+          <div className="hero-tag">COMMUNITY LOST & FOUND</div>
+
+          <h1>
+            Lost Something?
+            <br />
+            Find It <span>Faster.</span>
+          </h1>
+
+          <p className="hero-description">
+            A smart platform to report lost items, find found items, and
+            reconnect with the rightful owner — in just a few clicks.
+          </p>
+
+          <div className="hero-buttons">
+            <Link to="/lost-item" className="primary-btn">
+              Report Lost Item
+            </Link>
+
+            <Link to="/found-item" className="secondary-btn">
+              Report Found Item
+            </Link>
+          </div>
+
+          {/* ================= SEARCH ================= */}
+          <div className="search-section">
+            <form className="search-box" onSubmit={handleHeroSearch}>
+              <input
+                type="text"
+                placeholder="Search for lost items by name or location..."
+                value={heroSearch}
+                onChange={(e) => setHeroSearch(e.target.value)}
+              />
+
+              <button type="submit" className="search-btn">
+                Search
+              </button>
+            </form>
+
+            <div className="categories">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  className="category"
+                  onClick={() => handleCategoryClick(category)}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+
+
+          {/* ================= STATISTICS ================= */}
+          <div className="stats">
+
+            {stats.map((stat) => (
+              <div className="stat-card" key={stat.label}>
+
+                <div className={`stat-icon ${stat.className}`}>
+                  {stat.icon}
+                </div>
+
+                <div>
+                  <div className="stat-number">
+                    {stat.number}
+                  </div>
+
+                  <div className="stat-label">
+                    {stat.label}
+                  </div>
+                </div>
+
+              </div>
+            ))}
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* ================= WHY CHOOSE ================= */}
+      <section className="features-section">
+
+        <h2 className="section-title">
+          Why Choose <span>LostLink?</span>
+        </h2>
+
+        <p className="section-subtitle">
+          Everything you need to report, search, and reunite belongings
+          with their owners.
+        </p>
+
+
+        <div className="features-grid">
+
+          {features.map((feature) => (
+            <div
+              className="feature-card"
+              key={feature.title}
+            >
+
+              <div
+                className={`feature-icon ${feature.className}`}
+              >
+                {feature.icon}
+              </div>
+
+              <h3>{feature.title}</h3>
+
+              <p>{feature.text}</p>
+
+            </div>
+          ))}
+
+        </div>
+
+      </section>
+
+    </div>
+  );
+}
+
+export default Home;
