@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { MapPin, Bell, LogOut, Menu, X, CheckCheck } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { notificationsApi } from "../api";
+import { SHOW_ACCOUNT_FEATURES } from "../config";
+import { useAuth } from "../context/useAuth";
+import { getApiErrorMessage, notificationsApi } from "../api";
 
 function Navbar() {
   const location = useLocation();
@@ -13,16 +14,20 @@ function Navbar() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationError, setNotificationError] = useState("");
 
   useEffect(() => {
+    if (!SHOW_ACCOUNT_FEATURES) return undefined;
+
     const loadNotifications = async () => {
       try {
-        const res = await notificationsApi.getNotifications(user?.id);
+        const res = await notificationsApi.getNotifications();
         const list = res.data || [];
         setNotifications(list);
-        setUnreadCount(list.filter((notification) => !notification.read).length);
-      } catch {
-        // Graceful fallback
+        setUnreadCount(list.filter((notification) => !notification.read && notification.userId).length);
+        setNotificationError("");
+      } catch (requestError) {
+        setNotificationError(getApiErrorMessage(requestError, "Unable to load notifications."));
       }
     };
 
@@ -36,26 +41,26 @@ function Navbar() {
 
   const handleMarkAllRead = async () => {
     try {
-      await notificationsApi.markAllRead(user?.id);
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      await notificationsApi.markAllRead();
+      setNotifications((prev) => prev.map((n) => n.userId ? ({ ...n, read: true }) : n));
       setUnreadCount(0);
-    } catch {
-      // ignore
+    } catch (requestError) {
+      setNotificationError(getApiErrorMessage(requestError, "Unable to mark notifications as read."));
     }
   };
 
   const handleMarkOneRead = async (notif) => {
-    if (!notif || notif.read) return;
+    if (!notif || notif.read || !notif.userId) return;
     const targetId = notif.id || notif.notificationId;
     if (!targetId) return;
     try {
-      await notificationsApi.markRead(targetId, user?.id);
+      await notificationsApi.markRead(targetId);
       setNotifications((prev) =>
         prev.map((n) => ((n.id || n.notificationId) === targetId ? { ...n, read: true } : n))
       );
       setUnreadCount((c) => Math.max(0, c - 1));
-    } catch {
-      // ignore
+    } catch (requestError) {
+      setNotificationError(getApiErrorMessage(requestError, "Unable to mark this notification as read."));
     }
   };
 
@@ -101,6 +106,7 @@ function Navbar() {
       {/* Navbar Right Actions */}
       <div className="nav-right">
         {/* Notifications Button */}
+        {SHOW_ACCOUNT_FEATURES && (
         <div className="notifications-wrapper">
           <button
             className="theme-btn notif-btn"
@@ -124,6 +130,7 @@ function Navbar() {
               </div>
 
               <div className="notif-list">
+                {notificationError && <p role="alert">{notificationError}</p>}
                 {notifications.length === 0 ? (
                   <p className="no-notifs">No notifications yet.</p>
                 ) : (
@@ -163,9 +170,10 @@ function Navbar() {
             </div>
           )}
         </div>
+        )}
 
         {/* User Authentication Status */}
-        {isAuthenticated && user ? (
+        {SHOW_ACCOUNT_FEATURES && (isAuthenticated && user ? (
           <div className="user-menu">
             <span className="user-name">Hello, {user.name || user.email}!</span>
             <button className="logout-btn" onClick={handleLogout} title="Logout">
@@ -176,7 +184,7 @@ function Navbar() {
           <Link to="/login" className="login-btn" onClick={() => setMobileMenuOpen(false)}>
             Login
           </Link>
-        )}
+        ))}
 
         {/* Mobile Hamburger Toggle */}
         <button

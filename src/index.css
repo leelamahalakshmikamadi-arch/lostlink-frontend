@@ -1246,6 +1246,22 @@ input {
   color: #69617e;
 }
 
+.password-visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #9d70ed;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.password-visibility-toggle:focus-visible {
+  outline: 2px solid #a875ff;
+  outline-offset: 2px;
+}
+
 .login-options {
   display: flex;
   justify-content: space-between;
@@ -1529,7 +1545,7 @@ input {
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
 }
 
-/* ================= CLAIM MODAL, OTP & QR ================= */
+/* ================= CLAIM MODAL ================= */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1574,111 +1590,6 @@ input {
   color: #94a3b8;
   margin: 6px 0 16px 0;
   line-height: 1.4;
-}
-
-.otp-display-card {
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px dashed #6366f1;
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-  margin-bottom: 18px;
-}
-
-.otp-label {
-  font-size: 11px;
-  color: #a5b4fc;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-}
-
-.otp-digits {
-  font-size: 28px;
-  font-weight: 800;
-  color: #38bdf8;
-  letter-spacing: 4px;
-  margin: 6px 0;
-  font-family: monospace;
-}
-
-.qr-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 16px 0;
-}
-
-.qr-box {
-  background: #ffffff;
-  padding: 12px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.qr-token-label {
-  color: #1e1b4b;
-  font-size: 9px;
-  font-family: monospace;
-  margin-top: 6px;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.qr-helper-text {
-  font-size: 11px;
-  color: #94a3b8;
-  margin-top: 8px;
-}
-
-.otp-verify-form {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.otp-verify-form h3 {
-  font-size: 13px;
-  color: #f1f5f9;
-  margin-bottom: 10px;
-}
-
-.input-group-row {
-  display: flex;
-  gap: 8px;
-}
-
-.input-group-row input {
-  flex: 1;
-  font-size: 14px;
-  letter-spacing: 2px;
-  font-family: monospace;
-  text-align: center;
-}
-
-.input-group-row button {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0 16px;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.input-group-row button:disabled {
-  background: #64748b;
-  cursor: not-allowed;
 }
 
 /* ================= MOBILE RESPONSIVENESS ================= */

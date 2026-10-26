@@ -3,11 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   Camera,
-  Bell,
+  Sparkles,
   ShieldCheck,
-  UserRound,
   WalletCards,
-  PackageCheck,
 } from "lucide-react";
 
 function Home() {
@@ -21,7 +19,7 @@ function Home() {
     "Keys",
     "Books",
     "Accessories",
-    "ID Cards",
+    "ID Card",
   ];
 
   const handleHeroSearch = (e) => {
@@ -41,33 +39,6 @@ function Home() {
     }
   };
 
-  const stats = [
-    {
-      icon: <WalletCards size={16} />,
-      number: "250+",
-      label: "Lost Items Reported",
-      className: "purple",
-    },
-    {
-      icon: <PackageCheck size={16} />,
-      number: "180+",
-      label: "Items Found",
-      className: "green",
-    },
-    {
-      icon: <UserRound size={16} />,
-      number: "320+",
-      label: "Happy Users",
-      className: "blue",
-    },
-    {
-      icon: <ShieldCheck size={16} />,
-      number: "90+",
-      label: "Items Returned",
-      className: "yellow",
-    },
-  ];
-
   const features = [
     {
       icon: <Camera size={18} />,
@@ -82,15 +53,15 @@ function Home() {
       className: "green",
     },
     {
-      icon: <Bell size={18} />,
-      title: "Instant Alerts",
-      text: "Get notified when a matching item is found or reported.",
+      icon: <Sparkles size={18} />,
+      title: "AI Photo Matching",
+      text: "Add a photo and get possible matches suggested by AI.",
       className: "blue",
     },
     {
       icon: <ShieldCheck size={18} />,
-      title: "Secure & Reliable",
-      text: "We ensure privacy and safety for all users and their belongings.",
+      title: "Privacy Friendly",
+      text: "Phone numbers and emails are not shown on public pages.",
       className: "yellow",
     },
   ];
@@ -158,33 +129,6 @@ function Home() {
               ))}
             </div>
           </div>
-
-
-          {/* ================= STATISTICS ================= */}
-          <div className="stats">
-
-            {stats.map((stat) => (
-              <div className="stat-card" key={stat.label}>
-
-                <div className={`stat-icon ${stat.className}`}>
-                  {stat.icon}
-                </div>
-
-                <div>
-                  <div className="stat-number">
-                    {stat.number}
-                  </div>
-
-                  <div className="stat-label">
-                    {stat.label}
-                  </div>
-                </div>
-
-              </div>
-            ))}
-
-          </div>
-
         </div>
 
       </section>

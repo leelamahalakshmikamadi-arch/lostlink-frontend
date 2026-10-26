@@ -1,4 +1,4 @@
-import { Search, ShieldCheck, Bell, Heart, Users, Target } from "lucide-react";
+import { Search, ShieldCheck, Sparkles, Heart, Users, Target } from "lucide-react";
 
 function About() {
   return (
@@ -53,14 +53,14 @@ function About() {
 
           <div className="feature-card">
             <ShieldCheck />
-            <h3>Secure & Reliable</h3>
-            <p>Your reports and contact details are handled securely.</p>
+            <h3>Privacy Friendly</h3>
+            <p>Phone numbers and emails are not shown on public pages.</p>
           </div>
 
           <div className="feature-card">
-            <Bell />
-            <h3>Quick Notifications</h3>
-            <p>Get updates when a possible match is found.</p>
+            <Sparkles />
+            <h3>AI Photo Matching</h3>
+            <p>Add a photo and get possible matches suggested by AI.</p>
           </div>
 
           <div className="feature-card">

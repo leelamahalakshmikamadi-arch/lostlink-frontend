@@ -1,8 +1,31 @@
 import { useState } from "react";
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, MapPin, Send } from "lucide-react";
+import { api, getApiErrorMessage } from "../api";
 
 function Contact() {
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSending(true);
+    const form = new FormData(event.currentTarget);
+    try {
+      await api.post("/api/contact", {
+        name: form.get("name"),
+        email: form.get("email"),
+        subject: form.get("subject"),
+        message: form.get("message"),
+      });
+      setSent(true);
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, "Message could not be sent. Please try again later."));
+    } finally {
+      setSending(false);
+    }
+  };
   return (
     <div className="page">
 
@@ -30,15 +53,7 @@ function Contact() {
             <Mail />
             <div>
               <h3>Email</h3>
-              <p>support@lostlink.com</p>
-            </div>
-          </div>
-
-          <div className="contact-item">
-            <Phone />
-            <div>
-              <h3>Phone</h3>
-              <p>+91 98765 43210</p>
+              <p>Use the message form to contact support.</p>
             </div>
           </div>
 
@@ -52,30 +67,34 @@ function Contact() {
 
         </div>
 
-        <form className="contact-form" onSubmit={(e) => { e.preventDefault(); setSent(true); }}>
+        <form className="contact-form" onSubmit={handleSubmit}>
           <h2>Send us a Message</h2>
+          <div className="info-box">
+            Online messaging is coming soon. For now, please visit the Campus Help Desk, Main Block.
+          </div>
 
           {sent ? (
             <div className="auth-message success">
-              Thank you for reaching out! Our campus help desk team will get back to you shortly.
+              Online messaging is not available in this version.
             </div>
           ) : (
             <>
-              <label>Your Name *</label>
-              <input placeholder="Full name" required />
+              {error && <div className="auth-message error" role="alert">{error}</div>}
+              <label htmlFor="contact-name">Your Name *</label>
+              <input id="contact-name" name="name" placeholder="Full name" minLength={2} maxLength={100} required />
 
-              <label>Email *</label>
-              <input type="email" placeholder="you@example.com" required />
+              <label htmlFor="contact-email">Email *</label>
+              <input id="contact-email" name="email" type="email" maxLength={254} placeholder="you@example.com" required />
 
-              <label>Subject *</label>
-              <input placeholder="How can we help?" required />
+              <label htmlFor="contact-subject">Subject *</label>
+              <input id="contact-subject" name="subject" placeholder="How can we help?" minLength={2} maxLength={160} required />
 
-              <label>Message *</label>
-              <textarea placeholder="Write your message here..." required />
+              <label htmlFor="contact-message">Message *</label>
+              <textarea id="contact-message" name="message" placeholder="Write your message here..." minLength={5} maxLength={4000} required />
 
-              <button type="submit">
+              <button type="submit" disabled title={sending ? "Sending..." : "Online messaging is not available in this version."}>
                 <Send size={15} />
-                Send Message
+                Coming soon
               </button>
             </>
           )}

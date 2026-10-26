@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LockKeyhole, Mail, LogIn } from "lucide-react";
+import { LockKeyhole, Mail, LogIn, Eye, EyeOff } from "lucide-react";
 import { authApi, getApiErrorMessage } from "../api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function Login() {
   const navigate = useNavigate();
@@ -11,6 +11,7 @@ function Login() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -28,11 +29,8 @@ function Login() {
     const email = formData.email.trim();
     const password = formData.password.trim();
 
-    console.log("Login attempt:", { email });
-
     if (!email || !password) {
       const msg = "Please enter both email and password.";
-      console.log("Validation error:", msg);
       setError(msg);
       return;
     }
@@ -40,9 +38,7 @@ function Login() {
     setIsSubmitting(true);
 
     try {
-      console.log("Sending login request...");
       const response = await authApi.login({ email, password });
-      console.log("Login success:", response.data);
       setSuccess(response.data.message || "Login successful.");
 
         // Update global auth context
@@ -55,19 +51,16 @@ function Login() {
         localStorage.setItem("lostlink_token", response.data.token || "");
         sessionStorage.removeItem("lostlink_user");
         sessionStorage.removeItem("lostlink_token");
-          console.log("Session persisted to localStorage");
       } else {
         localStorage.removeItem("lostlink_user");
         localStorage.removeItem("lostlink_token");
         sessionStorage.setItem("lostlink_user", JSON.stringify(response.data.user));
         sessionStorage.setItem("lostlink_token", response.data.token || "");
-          console.log("Session not persisted (Remember Me unchecked)");
       }
 
       setTimeout(() => navigate("/"), 700);
     } catch (loginError) {
       const errMsg = getApiErrorMessage(loginError, "Invalid email or password.");
-      console.log("Login error:", loginError, errMsg);
       setError(errMsg);
     } finally {
       setIsSubmitting(false);
@@ -116,13 +109,22 @@ function Login() {
           <input
             id="login-password"
             name="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={formData.password}
             onChange={handleChange}
             placeholder="Enter your password"
             autoComplete="current-password"
             required
           />
+          <button
+            type="button"
+            className="password-visibility-toggle"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((visible) => !visible)}
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
         </div>
 
         <div className="login-options">
@@ -136,7 +138,7 @@ function Login() {
             Remember Me
           </label>
 
-          <a href="#">Forgot Password?</a>
+          <Link to="/forgot-password">Forgot Password?</Link>
         </div>
 
         <button className="login-button" type="submit" disabled={isSubmitting}>

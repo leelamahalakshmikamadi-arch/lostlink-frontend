@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LockKeyhole, Mail, UserRound, UserPlus } from "lucide-react";
+import { LockKeyhole, Mail, UserRound, UserPlus, Eye, EyeOff } from "lucide-react";
 import { authApi, getApiErrorMessage } from "../api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function Register() {
   const navigate = useNavigate();
@@ -11,6 +11,7 @@ function Register() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -44,7 +45,6 @@ function Register() {
       localStorage.setItem("lostlink_user", JSON.stringify(response.data?.user || { name, email }));
       localStorage.setItem("lostlink_token", response.data?.token || "");
 
-      console.log("Registration successful, user persisted");
       setTimeout(() => navigate("/login"), 900);
     } catch (registerError) {
       const errorMsg = getApiErrorMessage(
@@ -102,7 +102,16 @@ function Register() {
         <label htmlFor="register-password">Password</label>
         <div className="input-icon">
           <LockKeyhole size={16} />
-          <input id="register-password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Create a password" required />
+          <input id="register-password" name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} placeholder="Create a password" minLength={8} maxLength={128} required />
+          <button
+            type="button"
+            className="password-visibility-toggle"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((visible) => !visible)}
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
         </div>
 
         <button className="login-button" type="submit" disabled={isSubmitting}>

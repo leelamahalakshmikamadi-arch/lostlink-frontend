@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { API_BASE_URL, getApiErrorMessage, getItemImage, itemsApi, matchItemImage } from "../api";
-import { useAuth } from "../context/AuthContext";
 import { Smartphone, ShoppingBag, Wallet, KeyRound, BookOpen, MapPin, Award } from "lucide-react";
 
 function Search() {
-  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState(searchParams.get("q") || "");
@@ -81,12 +79,7 @@ function Search() {
 
     try {
       const imageResponse = await getItemImage(item.id);
-      const response = await matchItemImage(
-        imageResponse.data,
-        item.itemType || "lost",
-        user?.id || item.userId,
-        user?.email || item.userEmail
-      );
+      const response = await matchItemImage(imageResponse.data, item.itemType || "lost");
       setMatchResults((current) => ({
         ...current,
         [item.id]: { matches: response.data.matches || [] },
@@ -111,6 +104,15 @@ function Search() {
     setSearchParams({});
   };
 
+  const applyFilters = () => {
+    const params = {};
+    if (search.trim()) params.q = search.trim();
+    if (category) params.category = category;
+    if (location) params.location = location;
+    if (type) params.type = type;
+    setSearchParams(params);
+  };
+
   return (
     <div className="page">
       <section className="page-hero">
@@ -133,7 +135,7 @@ function Search() {
           <option>Keys</option>
           <option>Books</option>
           <option>Accessories</option>
-          <option>ID Cards</option>
+          <option value="ID Card">ID Cards</option>
           <option>Other</option>
         </select>
 
@@ -152,7 +154,7 @@ function Search() {
           <option value="found">Found</option>
         </select>
 
-        <button type="button" onClick={() => {}}>Filter</button>
+        <button type="button" onClick={applyFilters}>Filter</button>
       </div>
 
       <div className="search-result">

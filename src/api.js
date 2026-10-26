@@ -1,6 +1,9 @@
 import axios from "axios";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
+export const MAX_REPORT_DATE = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
+  .toISOString()
+  .slice(0, 10);
 
 export const getApiErrorMessage = (error, fallback) => {
   if (!error) return fallback;
@@ -36,6 +39,14 @@ export const getApiErrorMessage = (error, fallback) => {
   return fallback;
 };
 
+export const validateReportImage = (file) => {
+  if (!file) return "";
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/gif", "image/bmp"]);
+  if (!allowedTypes.has(file.type)) return "Choose a JPEG, PNG, GIF, or BMP image.";
+  if (file.size > 10 * 1024 * 1024) return "Image must be 10 MB or smaller.";
+  return "";
+};
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
 });
@@ -43,23 +54,36 @@ export const api = axios.create({
 export const authApi = {
   login: (payload) => api.post("/api/auth/login", payload),
   register: (payload) => api.post("/api/auth/register", payload),
+  requestPasswordReset: (email) => api.post("/api/auth/forgot-password", { email }),
+  resetPassword: (payload) => api.post("/api/auth/reset-password", payload),
 };
 
 export const itemsApi = axios.create({
   baseURL: `${API_BASE_URL}/api/items`,
 });
 
+const attachAuthToken = (client) => {
+  client.interceptors.request.use((config) => {
+    const token = localStorage.getItem("lostlink_token") || sessionStorage.getItem("lostlink_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+};
+
+attachAuthToken(api);
+attachAuthToken(itemsApi);
+
 export const getItemById = (id) => itemsApi.get(`/${encodeURIComponent(id)}`);
 
 export const getItemImage = (id) =>
   itemsApi.get(`/${encodeURIComponent(id)}/image`, { responseType: "blob" });
 
-export const matchItemImage = (image, itemType, userId, userEmail) => {
+export const matchItemImage = (image, itemType) => {
   const payload = new FormData();
   payload.append("image", image);
-  let url = `/match?itemType=${encodeURIComponent(itemType)}`;
-  if (userId) url += `&userId=${encodeURIComponent(userId)}`;
-  if (userEmail) url += `&userEmail=${encodeURIComponent(userEmail)}`;
+  const url = `/match?itemType=${encodeURIComponent(itemType)}`;
   return itemsApi.post(url, payload);
 };
 
@@ -70,9 +94,7 @@ export const claimsApi = {
 };
 
 export const notificationsApi = {
-  getNotifications: (userId) =>
-    api.get("/api/notifications", { params: userId ? { userId } : {} }),
-  markRead: (id, userId) =>
-    api.post(`/api/notifications/${encodeURIComponent(id)}/read`, null, { params: userId ? { userId } : {} }),
-  markAllRead: (userId) => api.post("/api/notifications/read", null, { params: userId ? { userId } : {} }),
+  getNotifications: () => api.get("/api/notifications"),
+  markRead: (id) => api.post(`/api/notifications/${encodeURIComponent(id)}/read`),
+  markAllRead: () => api.post("/api/notifications/read"),
 };

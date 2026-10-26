@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, User, Award, ShieldCheck, KeyRound, CheckCircle2, X } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, User, Award, ShieldCheck, CheckCircle2, X } from "lucide-react";
 import { API_BASE_URL, getItemById, claimsApi, getApiErrorMessage } from "../api";
+import { useAuth } from "../context/useAuth";
+import { SHOW_ACCOUNT_FEATURES } from "../config";
 
 function DetailRow({ label, value, icon }) {
   if (!value) return null;
@@ -13,60 +15,17 @@ function DetailRow({ label, value, icon }) {
   );
 }
 
-// Visual QR Code SVG generator
-function QrCodeDisplay({ text }) {
-  // Generate deterministic 21x21 grid
-  const size = 21;
-  const grid = Array.from({ length: size }, () => Array(size).fill(false));
-
-  // Corner finder patterns (7x7)
-  const drawCorner = (r, c) => {
-    for (let i = 0; i < 7; i++) {
-      for (let j = 0; j < 7; j++) {
-        if (i === 0 || i === 6 || j === 0 || j === 6 || (i >= 2 && i <= 4 && j >= 2 && j <= 4)) {
-          grid[r + i][c + j] = true;
-        }
-      }
-    }
-  };
-  drawCorner(0, 0);
-  drawCorner(0, size - 7);
-  drawCorner(size - 7, 0);
-
-  // Timing patterns
-  for (let i = 8; i < size - 8; i++) {
-    grid[6][i] = i % 2 === 0;
-    grid[i][6] = i % 2 === 0;
+const fetchItemDetails = async (id) => {
+  if (!id) {
+    throw new Error("This item has no valid ID.");
   }
-
-  // Hash data into middle modules
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
-  }
-  for (let i = 8; i < size - 8; i++) {
-    for (let j = 8; j < size - 8; j++) {
-      const bit = ((hash ^ (i * 17 + j * 23)) & 1) === 1;
-      grid[i][j] = bit;
-    }
-  }
-
-  return (
-    <div className="qr-box">
-      <svg width="160" height="160" viewBox={`0 0 ${size} ${size}`}>
-        {grid.map((row, r) =>
-          row.map((cell, c) =>
-            cell ? <rect key={`${r}-${c}`} x={c} y={r} width="1.05" height="1.05" fill="#1e1b4b" /> : null
-          )
-        )}
-      </svg>
-      <div className="qr-token-label">{text}</div>
-    </div>
-  );
-}
+  const response = await getItemById(id);
+  return response.data.item || response.data;
+};
 
 function ItemDetails() {
   const { id } = useParams();
+  const { isAuthenticated } = useAuth();
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
 
@@ -78,34 +37,56 @@ function ItemDetails() {
   const [claimSubmitting, setClaimSubmitting] = useState(false);
   const [claimError, setClaimError] = useState("");
 
-  // Active claim / OTP verification state
+  // Claim submission and owner review state
   const [activeClaim, setActiveClaim] = useState(null);
-  const [verifyOtp, setVerifyOtp] = useState("");
-  const [verifying, setVerifying] = useState(false);
-  const [verifySuccess, setVerifySuccess] = useState("");
-  const [verifyError, setVerifyError] = useState("");
-
-  const loadItem = async () => {
-    if (!id) {
-      setError("This item has no valid ID.");
-      return;
-    }
-
-    try {
-      const response = await getItemById(id);
-      setItem(response.data.item || response.data);
-    } catch (requestError) {
-      setError(
-        requestError.response?.status === 404
-          ? "This item could not be found."
-          : "Unable to load this item."
-      );
-    }
-  };
+  const [ownerClaims, setOwnerClaims] = useState([]);
+  const [ownerClaimsItemId, setOwnerClaimsItemId] = useState("");
+  const [ownerClaimMessage, setOwnerClaimMessage] = useState("");
+  const [ownerClaimError, setOwnerClaimError] = useState("");
 
   useEffect(() => {
-    loadItem();
+    let cancelled = false;
+    fetchItemDetails(id)
+      .then((itemDetails) => {
+        if (!cancelled) setItem(itemDetails);
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setError(
+            requestError.response?.status === 404
+              ? "This item could not be found."
+              : requestError.message === "This item has no valid ID."
+                ? requestError.message
+                : "Unable to load this item."
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAuthenticated || !id) {
+      return undefined;
+    }
+    claimsApi.getClaims(id)
+      .then((response) => {
+        if (!cancelled) {
+          setOwnerClaims(response.data);
+          setOwnerClaimsItemId(id);
+        }
+      })
+      .catch((requestError) => {
+        if (!cancelled && requestError.response?.status !== 403 && requestError.response?.status !== 404) {
+          setOwnerClaimError(getApiErrorMessage(requestError, "Unable to load claim reviews."));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isAuthenticated]);
 
   const handleClaimSubmit = async (e) => {
     e.preventDefault();
@@ -126,23 +107,18 @@ function ItemDetails() {
     }
   };
 
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setVerifyError("");
-    setVerifySuccess("");
-    setVerifying(true);
-
+  const verifyOwnerClaim = async (claim) => {
+    setOwnerClaimError("");
+    setOwnerClaimMessage("");
     try {
-      const res = await claimsApi.verifyClaim(id, { otp: verifyOtp.trim() });
-      setVerifySuccess(res.data.message || "Claim verified successfully!");
-      if (activeClaim) {
-        setActiveClaim({ ...activeClaim, status: "VERIFIED" });
-      }
-      await loadItem();
-    } catch (err) {
-      setVerifyError(getApiErrorMessage(err, "Invalid OTP. Please verify and try again."));
-    } finally {
-      setVerifying(false);
+      const response = await claimsApi.verifyClaim(id, { claimId: claim.id });
+      setOwnerClaimMessage(response.data.message || "Claim verified.");
+      setOwnerClaims((current) => current.map((entry) =>
+        entry.id === claim.id ? { ...entry, status: "VERIFIED" } : entry
+      ));
+      setItem(await fetchItemDetails(id));
+    } catch (requestError) {
+      setOwnerClaimError(getApiErrorMessage(requestError, "Unable to verify this claim."));
     }
   };
 
@@ -163,7 +139,7 @@ function ItemDetails() {
   const date = item.dateLost || item.dateFound || item.date;
   const contact = item.contactNumber || item.contact;
   const reporter = item.reporterName || item.reporter;
-  const isClaimed = item.status && item.status.includes("Claimed");
+  const isClaimed = item.status && item.status.toLowerCase().includes("claimed");
 
   return (
     <div className="page details-page">
@@ -207,17 +183,50 @@ function ItemDetails() {
           </div>
 
           {/* Claim Action Button */}
-          {!isClaimed && (
+          {!isClaimed && SHOW_ACCOUNT_FEATURES && (
             <div className="claim-action-box">
               <button className="claim-btn" onClick={() => setClaimModalOpen(true)}>
-                <ShieldCheck size={18} /> Claim This Item (OTP & QR Verification)
+                <ShieldCheck size={18} /> Claim This Item
               </button>
+            </div>
+          )}
+          {!contact && (
+            <div className="info-box">
+              To claim this item, please visit the Campus Help Desk, Main Block, and bring proof of ownership.
             </div>
           )}
         </div>
       </section>
 
-      {/* Claim / OTP / QR Modal */}
+      {ownerClaimsItemId === id && ownerClaims.length > 0 && (
+        <section className="items-section" aria-labelledby="owner-claims-heading">
+          <div className="section-title">
+            <h2 id="owner-claims-heading">Claims for this item</h2>
+            <span>Only the item owner or a configured administrator can verify a handover.</span>
+          </div>
+          {ownerClaimMessage && <p role="status">{ownerClaimMessage}</p>}
+          {ownerClaimError && <p role="alert">{ownerClaimError}</p>}
+          <div className="items-grid">
+            {ownerClaims.map((claim) => (
+              <article className="item-card" key={claim.id}>
+                <div className="item-info">
+                  <h3>{claim.claimantName}</h3>
+                  <p>{claim.claimantContact}</p>
+                  <p>{claim.proofDetails}</p>
+                  <p>Status: {claim.status}</p>
+                  {claim.status !== "VERIFIED" && (
+                    <button type="button" onClick={() => verifyOwnerClaim(claim)}>
+                      Confirm handover
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Claim submission modal */}
       {claimModalOpen && (
         <div className="modal-overlay">
           <div className="claim-modal">
@@ -230,7 +239,7 @@ function ItemDetails() {
               <form onSubmit={handleClaimSubmit}>
                 <h2>Claim Verification for "{item.itemName || "Item"}"</h2>
                 <p className="modal-sub">
-                  Provide your details and ownership proof. A 6-digit OTP and QR Verification Code will be generated instantly.
+                  Provide your details and ownership proof. The item owner or an administrator must verify the handover.
                 </p>
 
                 {claimError && <div className="auth-message error">{claimError}</div>}
@@ -262,48 +271,17 @@ function ItemDetails() {
                 />
 
                 <button type="submit" className="login-button" disabled={claimSubmitting}>
-                  {claimSubmitting ? "Generating OTP & QR..." : "Submit Claim"}
+                  {claimSubmitting ? "Submitting..." : "Submit Claim"}
                 </button>
               </form>
             ) : (
-              // Step 2: OTP & QR Code Verification View
+              // Step 2: Claim receipt
               <div className="claim-result-view">
-                <h2>Claim Verification Pass</h2>
+                <h2>Claim submitted</h2>
                 <p className="modal-sub">
-                  Show this QR code at the Campus Help Desk or enter your 6-digit OTP below to verify handover.
+                  Your claim was recorded. The item owner or an administrator must review your proof and confirm the handover.
                 </p>
-
-                <div className="otp-display-card">
-                  <div className="otp-label">Your 6-Digit Handover OTP</div>
-                  <div className="otp-digits">{activeClaim.otp}</div>
-                  <small>Valid for this claim verification</small>
-                </div>
-
-                <div className="qr-container">
-                  <QrCodeDisplay text={activeClaim.qrCode} />
-                  <p className="qr-helper-text">Campus Help Desk Scanner Compatible</p>
-                </div>
-
-                {/* OTP Verification Form */}
-                <form onSubmit={handleVerifyOtp} className="otp-verify-form">
-                  <h3>Verify & Mark as Claimed</h3>
-                  {verifySuccess && <div className="auth-message success">{verifySuccess}</div>}
-                  {verifyError && <div className="auth-message error">{verifyError}</div>}
-
-                  <div className="input-group-row">
-                    <input
-                      type="text"
-                      placeholder="Enter 6-digit OTP"
-                      maxLength={6}
-                      value={verifyOtp}
-                      onChange={(e) => setVerifyOtp(e.target.value)}
-                      required
-                    />
-                    <button type="submit" disabled={verifying || activeClaim.status === "VERIFIED"}>
-                      <KeyRound size={14} /> {verifying ? "Verifying..." : activeClaim.status === "VERIFIED" ? "Verified ✓" : "Verify OTP"}
-                    </button>
-                  </div>
-                </form>
+                <p><strong>Claim reference:</strong> {activeClaim.claimId}</p>
               </div>
             )}
           </div>
